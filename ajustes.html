@@ -1,0 +1,29 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111827"><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"><title>Ajustes - InDrive Spark</title></head><body><div class="app">
+<header><h1>⚙️ Ajustes</h1><div class="sub">Configuración del Spark y de InDrive</div></header>
+<nav><a href="index.html">🧮 Calcular</a><a href="historial.html">📊 Historial</a><a class="active" href="ajustes.html">⚙️ Ajustes</a></nav>
+<section class="card">
+<label>Comisión InDrive (%)</label><input id="commission" type="number" step="0.1"><label>Gasolina por galón</label><input id="gasPrice" type="number">
+<label>Rendimiento (km/galón)</label><input id="kmGal" type="number" step="0.1"><label>Mantenimiento por km</label><input id="maintenance" type="number">
+<label>Reserva/depreciación por km</label><input id="depreciation" type="number"><label>Meta mínima neta por hora</label><input id="targetHour" type="number">
+<label>Meta de ganancia diaria</label><input id="dailyGoal" type="number"><button onclick="save()">GUARDAR AJUSTES</button>
+<p class="small">La comisión está configurada actualmente en <b>9,5%</b>. Si cambia, puedes modificarla aquí.</p></section>
+<script>
+const KEY='indriveSparkV3Settings', HIST='indriveSparkV3History';
+function money(n){return new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Math.round(n||0))}
+function num(id){return parseFloat(document.getElementById(id).value)||0}
+function settings(){return JSON.parse(localStorage.getItem(KEY)||'{"commission":0.095,"gasPrice":16000,"kmGal":42,"maintenance":300,"depreciation":150,"targetHour":15000,"dailyGoal":100000}')}
+function kmCost(){const s=settings();return s.gasPrice/s.kmGal+s.maintenance+s.depreciation}
+function calculateRace(p,k,offer,mins){
+ const s=settings(), total=p+k, cost=total*kmCost(), timeCost=s.targetHour*(total/30);
+ const rec=Math.ceil(((cost+timeCost)/(1-s.commission)*1.15)/1000)*1000;
+ const ideal=Math.ceil(rec*1.2/1000)*1000, net=offer*(1-s.commission), profit=net-cost;
+ const hourly=mins>0?profit/(mins/60):0, netKm=total>0?net/total:0;
+ let d='MALA'; if(offer>=ideal)d='EXCELENTE'; else if(offer>=rec)d='BUENA';
+ return {p,k,total,offer,mins,cost,rec,ideal,net,profit,hourly,netKm,d,date:new Date().toISOString()};
+}
+
+const defaults={commission:9.5,gasPrice:16000,kmGal:42,maintenance:300,depreciation:150,targetHour:15000,dailyGoal:100000};
+function load(){const s=settings();commission.value=(s.commission*100).toFixed(1);gasPrice.value=s.gasPrice;kmGal.value=s.kmGal;maintenance.value=s.maintenance;depreciation.value=s.depreciation;targetHour.value=s.targetHour;dailyGoal.value=s.dailyGoal}
+function save(){const s={commission:num('commission')/100,gasPrice:num('gasPrice'),kmGal:num('kmGal'),maintenance:num('maintenance'),depreciation:num('depreciation'),targetHour:num('targetHour'),dailyGoal:num('dailyGoal')};localStorage.setItem(KEY,JSON.stringify(s));alert('Ajustes guardados correctamente.')}
+load();
+</script></div></body></html>

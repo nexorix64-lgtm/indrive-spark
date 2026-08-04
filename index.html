@@ -1,0 +1,36 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111827"><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"><title>InDrive Spark</title></head><body><div class="app">
+<header><h1>🚗 InDrive Spark</h1><div class="sub">Calculadora rápida de rentabilidad</div></header>
+<nav><a class="active" href="index.html">🧮 Calcular</a><a href="historial.html">📊 Historial</a><a href="ajustes.html">⚙️ Ajustes</a></nav>
+<section class="card"><label>🚗 Km para recoger</label><input id="pickup" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Ej. 2">
+<label>📍 Km con pasajero</label><input id="passenger" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Ej. 8">
+<label>💰 Precio ofrecido</label><input id="offer" type="number" min="0" step="100" inputmode="numeric" placeholder="Ej. 12000">
+<label>⏱️ Tiempo total (minutos)</label><input id="time" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 30">
+<button onclick="calculate()">CALCULAR CARRERA</button></section>
+<section class="card"><div id="decision" class="decision espera">ESPERANDO DATOS</div>
+<div class="row"><span>💵 Precio recomendado</span><span class="value" id="recommended">$0</span></div><div class="row"><span>⭐ Precio ideal</span><span class="value" id="ideal">$0</span></div>
+<div class="row"><span>💸 Neto después de comisión</span><span class="value" id="afterComm">$0</span></div><div class="row"><span>🚗 Costo del vehículo</span><span class="value" id="cost">$0</span></div>
+<div class="row"><span>💰 Ganancia estimada</span><span class="value" id="profit">$0</span></div><div class="row"><span>📊 Ganancia por hora</span><span class="value" id="hourly">$0</span></div>
+<div class="row"><span>📍 Pago neto por km</span><span class="value" id="netKm">$0</span></div>
+<button class="secondary" onclick="saveRace()">💾 GUARDAR CARRERA</button><button class="secondary" onclick="clearForm()">🧹 NUEVA CARRERA</button></section>
+<script>
+const KEY='indriveSparkV3Settings', HIST='indriveSparkV3History';
+function money(n){return new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Math.round(n||0))}
+function num(id){return parseFloat(document.getElementById(id).value)||0}
+function settings(){return JSON.parse(localStorage.getItem(KEY)||'{"commission":0.095,"gasPrice":16000,"kmGal":42,"maintenance":300,"depreciation":150,"targetHour":15000,"dailyGoal":100000}')}
+function kmCost(){const s=settings();return s.gasPrice/s.kmGal+s.maintenance+s.depreciation}
+function calculateRace(p,k,offer,mins){
+ const s=settings(), total=p+k, cost=total*kmCost(), timeCost=s.targetHour*(total/30);
+ const rec=Math.ceil(((cost+timeCost)/(1-s.commission)*1.15)/1000)*1000;
+ const ideal=Math.ceil(rec*1.2/1000)*1000, net=offer*(1-s.commission), profit=net-cost;
+ const hourly=mins>0?profit/(mins/60):0, netKm=total>0?net/total:0;
+ let d='MALA'; if(offer>=ideal)d='EXCELENTE'; else if(offer>=rec)d='BUENA';
+ return {p,k,total,offer,mins,cost,rec,ideal,net,profit,hourly,netKm,d,date:new Date().toISOString()};
+}
+
+let last={};
+function calculate(){const r=calculateRace(num('pickup'),num('passenger'),num('offer'),num('time')); if(!r.total||!r.offer)return;last=r;
+recommended.textContent=money(r.rec);ideal.textContent=money(r.ideal);afterComm.textContent=money(r.net);cost.textContent=money(r.cost);profit.textContent=money(r.profit);hourly.textContent=money(r.hourly);netKm.textContent=money(r.netKm);
+decision.textContent=r.d;decision.className='decision '+(r.d==='EXCELENTE'?'excelente':r.d==='BUENA'?'buena':'mala');}
+function saveRace(){if(!last.total)calculate();if(!last.total)return;const h=JSON.parse(localStorage.getItem(HIST)||'[]');h.unshift(last);localStorage.setItem(HIST,JSON.stringify(h.slice(0,200)));alert('Carrera guardada.');clearForm();}
+function clearForm(){['pickup','passenger','offer'].forEach(id=>document.getElementById(id).value='');document.getElementById('time').value=30;['recommended','ideal','afterComm','cost','profit','hourly','netKm'].forEach(id=>document.getElementById(id).textContent='$0');decision.textContent='ESPERANDO DATOS';decision.className='decision espera';last={};}
+</script></div></body></html>
